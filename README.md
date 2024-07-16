@@ -1,4 +1,6 @@
 ## fish cfg
+- Q: Why fish? 
+- A: Fast, lightweight, and easy to use.
 
 ### Install
 

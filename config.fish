@@ -105,7 +105,7 @@ end
 #   git_merge user
 #   git_merge user/new_repo -b main
 #   git_merge user/repo -d gitlab.com
-function git_merge
+function git_merge -d "Merge a remote repository"
     set user $argv[1]
     set repo ""
     set branch "main"
