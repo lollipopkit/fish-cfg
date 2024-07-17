@@ -13,13 +13,14 @@ set -x LC_ALL en_US.UTF-8
 set -x EDITOR vim
 set -x ANDROID_HOME ~/env/android
 set -x DOCKER_HOST unix:///run/user/1000/docker.sock
-set -x FISH_CFG $HOME/.config/fish/config.fish
-set -x FISH_HISTORY $HOME/.local/share/fish/fish_history
+set -x FIC $HOME/.config/fish/config.fish
+set -x FIH $HOME/.local/share/fish/fish_history
 
 status is-interactive || exit
 
 set -g fish_greeting
 set -g sudope_sequence \cs
+set -g sponge_successful_exit_codes 0 130
 set -g hydro_symbol_prompt '>'
 set -g hydro_symbol_git_dirty '!'
 set -g hydro_color_pwd BB2D6F
@@ -36,6 +37,8 @@ alias fpg 'flutter pub get'
 alias dfmt 'dart format .'
 alias gtp 'git_tag_push'
 alias ka 'kill_all'
+alias gr 'go run'
+alias gmt 'go mod tidy'
 
 set SSH_ENV "$HOME/.ssh/agent-environment"
 
