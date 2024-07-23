@@ -21,12 +21,13 @@ status is-interactive || exit
 set -g fish_greeting
 set -g sudope_sequence \cs
 set -g sponge_successful_exit_codes 0 130
+set -g sponge_delay 5
 set -g hydro_symbol_prompt '>'
 set -g hydro_symbol_git_dirty '!'
 set -g hydro_color_pwd BB2D6F
 set -g hydro_color_prompt BB2D6F
 
-alias dps 'docker ps -a --format "table {{printf \"%-15.15s %-30.30s %-15.15s\" .ID .Image .Status}}"'
+alias dps 'docker ps -a --format "table {{printf \"%-15.15s %-15.15s %-30.30s %-15.15s\" .ID .Names .Image .Status}}"'
 alias dcp 'docker compose'
 alias ulog 'journalctl --user -u'
 alias slog 'journalctl -u'
@@ -57,6 +58,14 @@ if test -f "$SSH_ENV"
     or start_ssh_agent
 else
     start_ssh_agent
+end
+
+function compress -d "Compress dir to tar.gz"
+    if test (count $argv) -eq 0
+        echo "Usage: compress <dir>"
+        return 1
+    end
+    tar -czvf $argv[1].tar.gz $argv[1]
 end
 
 function kill_all -d "Kill all processes with a keyword"
@@ -173,22 +182,13 @@ function git_first -d "Get the first commit of a git repository"
 end
 
 function git_lines -d "Get the lines of code of a git repository"
-    set name ""
-    set dir "."
+    set name (git config user.name)
 
-    for i in (seq 1 2 (count $argv))
-        switch $argv[$i]
-            case "-a"
-                set name $argv[(math $i + 1)]
-            case "-d"
-                set dir $argv[(math $i + 1)]
-        end
-    end
-
-    if test -z "$name"
-        set name (git config user.name)
-    end
-
-    echo "[\033[33m$name\033[0m] in [\033[32m$dir\033[0m] at [\033[32m(date)\033[0m]"
+    set_color yellow
+    echo -n "["
+    echo -n (set_color yellow) $name (set_color normal)
+    echo -n "] at ["
+    echo -n (set_color green) (date) (set_color normal)
+    echo "]"
     git log --author="$name" --pretty=tformat: --numstat -- $dir | awk '{ add += $1 ; subs += $2 ; loc += $1 + $2 } END { printf "added lines: \033[34m%d\033[0m, removed lines: \033[31m%d\033[0m, total lines: \033[32m%d\033[0m\n", add, subs, loc }'
 end
