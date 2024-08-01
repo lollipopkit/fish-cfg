@@ -1,3 +1,5 @@
+status is-interactive || exit
+
 set -x PATH $PATH ~/.cargo/bin
 set -x PATH $PATH ~/.local/bin
 set -x PATH $PATH ~/env/flutter/bin
@@ -15,8 +17,6 @@ set -x ANDROID_HOME ~/env/android
 set -x DOCKER_HOST unix:///run/user/1000/docker.sock
 set -x FIC $HOME/.config/fish/config.fish
 set -x FIH $HOME/.local/share/fish/fish_history
-
-status is-interactive || exit
 
 set -g fish_greeting
 set -g sudope_sequence \cs
@@ -58,6 +58,10 @@ if test -f "$SSH_ENV"
     or start_ssh_agent
 else
     start_ssh_agent
+end
+
+function fish_prompt
+    echo -e "$_hydro_color_pwd$_hydro_pwd$hydro_color_normal $_hydro_color_git$$_hydro_git$hydro_color_normal$_hydro_color_duration$_hydro_cmd_duration$hydro_color_normal$_hydro_status$hydro_color_normal "
 end
 
 function compress -d "Compress dir to tar.gz"
