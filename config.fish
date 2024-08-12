@@ -1,5 +1,6 @@
 status is-interactive || exit
 
+set -x PATH $PATH ~/env/script
 set -x PATH $PATH ~/.cargo/bin
 set -x PATH $PATH ~/.local/bin
 set -x PATH $PATH ~/env/flutter/bin
@@ -8,6 +9,7 @@ set -x PATH $PATH ~/env/android/cmdline-tools/latest/bin
 set -x PATH $PATH ~/env/android/platform-tools
 set -x PATH $PATH ~/proj/fvck_adb_mDNS
 set -x PATH $PATH /usr/local/go/bin
+set -x PATH $PATH ~/.pub-cache/bin
 
 set -x SHELL /usr/bin/fish
 set -x TZ Asia/Shanghai
@@ -108,6 +110,59 @@ end
 function mdc -d "Make directory and cd into it"
     mkdir -p $argv[1]
     cd $argv[1]
+end
+
+function combine_dir_files_into_one -d "Combine files in a dir into one file"
+    argparse 'd/directory=' 'o/output=' 'c/comment=' -- $argv
+    or return 1
+
+    if not set -q _flag_directory; or not set -q _flag_output
+        echo "Usage: combine_dir_files_into_one -d <directory> -o <output_file> [-c <comment_symbol>]"
+        return 1
+    end
+
+    set directory $_flag_directory
+    set output_file $_flag_output
+    set comment_symbol "//"
+    if set -q _flag_comment
+        set comment_symbol $_flag_comment
+    end
+
+    if not test -d "$directory"
+        echo "错误: 目录 '$directory' 不存在"
+        return 1
+    end
+
+    # 递归函数
+    function process_directory
+        set dir $argv[1]
+        set base_dir $argv[2]
+        set local_output_file $argv[3]
+        set local_comment_symbol $argv[4]
+
+        for item in $dir/*
+            if test -f "$item"
+                # 计算相对路径
+                set rel_path (string replace "$base_dir/" "" "$item")
+                
+                # 写入文件路径和内容
+                echo "$local_comment_symbol $rel_path" >> $local_output_file
+                cat "$item" >> $local_output_file
+                echo "" >> $local_output_file
+            else if test -d "$item"
+                # 如果是目录，递归处理
+                process_directory "$item" "$base_dir" $local_output_file $local_comment_symbol
+            end
+        end
+    end
+
+    # 清空或创建输出文件
+    echo -n > $output_file
+
+    # 开始处理
+    process_directory "$directory" "$directory" $output_file $comment_symbol
+
+    echo "处理完成。结果已写入 $output_file"
 end
 
 # Usage:
