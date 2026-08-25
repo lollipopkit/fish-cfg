@@ -32,24 +32,51 @@ if [ -n "$git_branch" ]; then
   fi
 fi
 
-# --- rate limit quota ---
-five_used=$(printf '%s' "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
-five_resets=$(printf '%s' "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
-week_used=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
-week_resets=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
+# --- model ---
+# display_name is the short label ("Opus 5 (1M)"); id is the full model id and
+# only stands in when a build sends no display name.
+model_name=$(printf '%s' "$input" | jq -r '.model.display_name // .model.id // empty')
+
+# --- context window + rate limit quota ---
+# `numbers` drops null and anything non-numeric, so the awk expressions below
+# never interpolate a string. These fields are null until the first API response.
+ctx_used=$(printf '%s' "$input" | jq -r '.context_window.used_percentage | numbers')
+five_used=$(printf '%s' "$input" | jq -r '.rate_limits.five_hour.used_percentage | numbers')
+five_resets=$(printf '%s' "$input" | jq -r '.rate_limits.five_hour.resets_at | numbers')
+week_used=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.used_percentage | numbers')
+week_resets=$(printf '%s' "$input" | jq -r '.rate_limits.seven_day.resets_at | numbers')
 
 # Colors — match hydro's default palette as closely as possible.
 # hydro uses: pwd=blue(#5b9bd5-ish), branch=green(#78c2a4), dirty=yellow
-# In 256-color: blue≈74, green≈72/79, yellow≈221, gray≈109, amber≈215
+# In 256-color: blue≈74, green≈72/79, yellow≈221, gray≈109, amber≈215, red≈203
 blue='\033[38;5;74m'
 green='\033[38;5;79m'
 yellow='\033[38;5;221m'
 gray='\033[38;5;109m'
 amber='\033[38;5;215m'
+red='\033[38;5;203m'
+purple='\033[38;5;140m'
 dim='\033[2m'
 reset='\033[0m'
 
 quota_parts=""
+
+# --- context window usage ---
+# Percentage of the window already occupied. The value is relative to the
+# session's own window, so a 1M-context model reads on the same scale as a 200k
+# one. Shown as "used".
+ctx_part=""
+if [ -n "$ctx_used" ]; then
+  ctx_color="$gray"
+  [ "$(awk "BEGIN { print ($ctx_used >= 70) ? 1 : 0 }")" = "1" ] && ctx_color="$amber"
+  [ "$(awk "BEGIN { print ($ctx_used >= 90) ? 1 : 0 }")" = "1" ] && ctx_color="$red"
+  ctx_part="${ctx_color}$(awk "BEGIN { printf \"%.0f\", $ctx_used }")%${reset}"
+fi
+
+# The model shares the context bracket: the percentage is relative to *this*
+# model's window, so the two belong together.
+model_part=""
+[ -n "$model_name" ] && model_part="${purple}${model_name}${reset}"
 
 # Format unix epoch into a human-readable countdown: "4h", "45m", "30s", or "now"
 _fmt_remaining() {
@@ -94,7 +121,7 @@ _append_quota "$five_used" "$five_resets"
 _append_quota "$week_used" "$week_resets"
 
 # --- assemble final line ---
-# hydro layout: <pwd>  <branch[!]>  [quota]
+# hydro layout: <pwd>  <branch[!]>  [<model> · <ctx used%>]  [quota]
 # pwd in blue, branch in green (dirty marker in yellow)
 prompt_pwd="${blue}${cwd}${reset}"
 
@@ -110,8 +137,17 @@ if [ -n "$git_part" ]; then
   fi
 fi
 
-if [ -n "$quota_parts" ]; then
-  printf "%b" "${prompt_pwd}${prompt_git}  ${dim}[${reset}${quota_parts}${dim}]${reset}"
-else
-  printf "%b" "${prompt_pwd}${prompt_git}"
+line="${prompt_pwd}${prompt_git}"
+
+model_ctx="$model_part"
+if [ -n "$ctx_part" ]; then
+  if [ -n "$model_ctx" ]; then
+    model_ctx="${model_ctx}${dim} · ${reset}${ctx_part}"
+  else
+    model_ctx="$ctx_part"
+  fi
 fi
+
+[ -n "$model_ctx" ] && line="${line}  ${dim}[${reset}${model_ctx}${dim}]${reset}"
+[ -n "$quota_parts" ] && line="${line}  ${dim}[${reset}${quota_parts}${dim}]${reset}"
+printf "%b" "$line"

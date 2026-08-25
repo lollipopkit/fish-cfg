@@ -1,5 +1,5 @@
-model = "gpt-5.5"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "xhigh"
 plan_mode_reasoning_effort = "xhigh"
 model_provider = "cliproxyapi"
 
@@ -43,7 +43,7 @@ js_repl = false
 
 [model_providers.cliproxyapi]
 name = "cliproxyapi"
-base_url = "http://100.103.213.81:8317/v1"
+base_url = "https://cpa.lolli.tech/v1"
 wire_api = "responses"
 env_key = "PIMM_API_KEY"
 
@@ -64,9 +64,13 @@ status_line = ["model-with-reasoning", "context-used", "weekly-limit"]
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
+"gpt-5.6-sol" = 4
 
 [plugins]
 "presentations@openai-primary-runtime" = { enabled = true }
 "spreadsheets@openai-primary-runtime" = { enabled = true }
 "documents@openai-primary-runtime" = { enabled = true }
 "browser@openai-bundled" = { enabled = true }
+
+[projects."/Users/lk/proj/Uptimer"]
+trust_level = "trusted"
